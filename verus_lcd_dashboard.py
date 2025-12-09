@@ -12,7 +12,7 @@ FB_PATH = "/dev/fb0"
 LOG_PATH = Path("/tmp/verus_raw.log")
 
 BG_COLOR = (0, 0, 0)
-FG_MAIN = (0, 255, 0)        # hacker-grönt
+FG_MAIN = (0, 255, 0)
 FG_DIM = (0, 160, 0)
 FG_GRAY = (100, 100, 100)
 FG_WARN = (255, 165, 0)
@@ -32,7 +32,7 @@ def rgb888_to_rgb565(img):
     return rgb565
 
 def load_font(size):
-    # Försök få monospace först
+    # Monospace
     candidates = [
         "/usr/share/fonts/truetype/dejavu/DejaVuSansMono.ttf",
         "/usr/share/fonts/truetype/dejavu/DejaVuSansMono-Bold.ttf",
@@ -76,7 +76,7 @@ def strip_timestamp(line: str) -> str:
     if line.startswith("["):
         idx = line.find("]")
         if idx != -1:
-            # hoppa över ']' + ev. mellanslag
+            # Skip ']' + space
             i = idx + 1
             if i < len(line) and line[i] == " ":
                 i += 1
@@ -122,7 +122,7 @@ def main():
         hashrate_mhs = hashrate_hs / 1_000_000.0
         rej = max(tot - acc, 0)
 
-        # Shares per minut (bara som kul siffra)
+        # Shares per minute
         spm = 0.0
         if uptime_secs > 0:
             spm = acc / (uptime_secs / 60.0)
@@ -138,7 +138,7 @@ def main():
             center_text(draw, 80, "WAITING FOR MINER OUTPUT", font_data, FG_WARN)
             center_text(draw, 100, "Start ccminer with tee /tmp/verus_raw.log", font_small, FG_GRAY)
         else:
-            # Data-ruta
+            # Data
             draw.text((10, 40), f"HR : {hashrate_mhs:5.2f} MH/s", font=font_data, fill=FG_MAIN)
             draw.text((10, 56), f"SH : {acc:4d}/{tot:<4d}  REJ: {rej}", font=font_data, fill=FG_MAIN)
             draw.text((10, 72), f"UP : {uptime}", font=font_data, fill=FG_MAIN)
@@ -147,13 +147,13 @@ def main():
             # Divider
             draw.line((10, 106, WIDTH - 10, 106), fill=FG_DIM, width=1)
 
-            # Log-del – fyll resten av skärmen
+            # Log
             draw.text((10, 110), "LOG:", font=font_small, fill=FG_GRAY)
 
             y = 126
             max_chars = 60
             for ln in lines:
-                # städa ANSI + timestamp
+                # Clean ANSI + timestamp
                 ln2 = strip_ansi(ln)
                 ln_clean = strip_timestamp(ln2)
                 if len(ln_clean) > max_chars:
@@ -165,7 +165,7 @@ def main():
                 if y > HEIGHT - 8:
                     break
 
-        # Skriv till framebuffer
+        # Write to framebuffer
         rgb565 = rgb888_to_rgb565(img)
         with open(FB_PATH, "wb") as f:
             f.write(rgb565.tobytes())
