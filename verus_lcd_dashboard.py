@@ -20,7 +20,7 @@ FG_WARN = (255, 165, 0)
 ANSI_RE = re.compile(r'\x1b\[[0-9;]*m')
 
 def strip_ansi(s: str) -> str:
-    """Ta bort ANSI-färgkoder."""
+    """Remove ANSI color codes."""
     return ANSI_RE.sub("", s)
 
 def rgb888_to_rgb565(img):
@@ -56,7 +56,7 @@ def center_text(draw, y, text, font, fill):
     draw.text((x, y), text, font=font, fill=fill)
 
 def get_recent_accepted_lines(n=11):
-    """Hämta de n senaste raderna som innehåller 'accepted:'."""
+    """Get the latest rows with 'accepted:'."""
     if not LOG_PATH.exists():
         return []
 
@@ -71,7 +71,7 @@ def get_recent_accepted_lines(n=11):
 
 def strip_timestamp(line: str) -> str:
     """
-    Ta bort prefixet '[2025-12-09 11:37:41] ' om det finns.
+    Remove prefix '[2025-12-09 11:37:41] '
     """
     if line.startswith("["):
         idx = line.find("]")
@@ -85,7 +85,7 @@ def strip_timestamp(line: str) -> str:
 
 def parse_stats_from_line(line: str):
     """
-    Parsar hashrate (kH/s) och shares från:
+    Get hashrate (kH/s) + shares from:
     [time] accepted: 252/253 (diff ...), 3679.97 kH/s yes!
     """
     m = re.search(r"accepted:\s+(\d+)/(\d+).*?,\s+([\d\.]+)\s+kH/s", line)
@@ -140,7 +140,7 @@ def main():
         else:
             # Data
             draw.text((10, 40), f"HR : {hashrate_mhs:5.2f} MH/s", font=font_data, fill=FG_MAIN)
-            draw.text((10, 56), f"SH : {acc:4d}/{tot:<4d}  REJ: {rej}", font=font_data, fill=FG_MAIN)
+            draw.text((10, 56), f"SH : {acc:4d}/{tot:<4d} / REJ: {rej}", font=font_data, fill=FG_MAIN)
             draw.text((10, 72), f"UP : {uptime}", font=font_data, fill=FG_MAIN)
             draw.text((10, 88), f"SPM: {spm:5.2f} shares/min", font=font_data, fill=FG_MAIN)
 
