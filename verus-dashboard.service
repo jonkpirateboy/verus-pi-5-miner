@@ -1,0 +1,19 @@
+[Unit]
+Description=Verus Miner LCD Dashboard
+After=multi-user.target getty@tty1.service verus-miner.service
+Wants=getty@tty1.service verus-miner.service
+
+[Service]
+User=jonk
+Group=jonk
+WorkingDirectory=/home/jonk
+
+#ExecStartPre=/bin/bash -lc 'sleep 2 && setterm -cursor off > /dev/tty1 || true'
+
+ExecStart=/usr/bin/python3 /home/jonk/verus-pi-5-miner/verus_lcd_dashboard.py
+
+Restart=always
+RestartSec=2
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,19 @@
+[Unit]
+Description=Verus ccminer on Raspberry Pi
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+User=jonk
+Group=jonk
+WorkingDirectory=/home/jonk/ccminer
+
+# Kör ccminer och logga allt till /tmp/verus_raw.log
+ExecStart=/bin/bash -lc './ccminer -a verus -o stratum+tcp://sg.vipor.net:5040 -u RP5uqbvzmCg7FtFS6WcKPHuAq7HihEkHmY.Pi5 -p x -t 4 2>&1 | tee /tmp/verus_raw.log'
+
+Restart=always
+RestartSec=5
+Nice=10
+
+[Install]
+WantedBy=multi-user.target
