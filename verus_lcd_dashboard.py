@@ -139,10 +139,16 @@ def main():
             center_text(draw, 100, "Start ccminer with tee /tmp/verus_raw.log", font_small, FG_GRAY)
         else:
             # Data
-            draw.text((10, 40), f"HR : {hashrate_mhs:5.2f} MH/s", font=font_data, fill=FG_MAIN)
-            draw.text((10, 56), f"SH : {acc:4d}/{tot:<4d} / REJ: {rej}", font=font_data, fill=FG_MAIN)
-            draw.text((10, 72), f"UP : {uptime}", font=font_data, fill=FG_MAIN)
-            draw.text((10, 88), f"SPM: {spm:5.2f} shares/min", font=font_data, fill=FG_MAIN)
+            hr = f"{hashrate_mhs:5.2f}".strip()
+            sh = f"{acc:4d}/{tot:<4d}".strip()
+            up = uptime.strip()
+            spm_val = f"{spm:5.2f}".strip()
+
+            draw.text((10, 40), f"HR : {hr} MH/s", font=font_data, fill=FG_MAIN)
+            draw.text((10, 56), f"SH : {sh} / REJ: {rej}", font=font_data, fill=FG_MAIN)
+            draw.text((10, 72), f"UP : {up}", font=font_data, fill=FG_MAIN)
+            draw.text((10, 88), f"SPM: {spm_val} shares/min", font=font_data, fill=FG_MAIN)
+
 
             # Divider
             draw.line((10, 106, WIDTH - 10, 106), fill=FG_DIM, width=1)
