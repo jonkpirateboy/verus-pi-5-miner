@@ -24,6 +24,8 @@ This README documents the entire setup end-to-end.
 
 ## Install
 
+Change user **jonk** to your user, and **RP5uqbvzmCg7FtFS6WcKPHuAq7HihEkHmY** to your address. Or you can leave it to help with my mining. :)
+
 ### 1. Install Required Packages
 
 ```bash

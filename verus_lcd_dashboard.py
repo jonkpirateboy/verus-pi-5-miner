@@ -5,11 +5,15 @@ import re
 import numpy as np
 from pathlib import Path
 from PIL import Image, ImageDraw, ImageFont
+import re, requests
 
 WIDTH = 480
 HEIGHT = 320
 FB_PATH = "/dev/fb0"
 LOG_PATH = Path("/tmp/verus_raw.log")
+BALANCE_CACHE_SECONDS = 300  # 5 minutes
+_last_balance_check = 0.0
+_cached_balance = None
 
 BG_COLOR = (0, 0, 0)
 FG_MAIN = (0, 255, 0)
@@ -96,6 +100,36 @@ def parse_stats_from_line(line: str):
     khs = float(m.group(3))
     return khs * 1000.0, acc, tot  # H/s
 
+def get_unpaid_vipor(address):
+    """
+    Get unpaid VRSC (pendingBalance) from Vipor JSON API.
+    https://restapi.vipor.net/api/pools/verus/miners/<ADDRESS>
+    """
+    url = f"https://restapi.vipor.net/api/pools/verus/miners/{address}"
+    try:
+        r = requests.get(url, timeout=5)
+        r.raise_for_status()
+        data = r.json()
+        # pendingBalance is your unpaid VRSC at the pool
+        pending = data.get("pendingBalance", None)
+        if pending is None:
+            return None
+        return float(pending)
+    except Exception:
+        return None
+
+
+def get_unpaid_vipor_cached(address):
+    """
+    Return cached unpaid balance, refresh at most every BALANCE_CACHE_SECONDS.
+    """
+    global _last_balance_check, _cached_balance
+    now = time.time()
+    if now - _last_balance_check > BALANCE_CACHE_SECONDS or _cached_balance is None:
+        _cached_balance = get_unpaid_vipor(address)
+        _last_balance_check = now
+    return _cached_balance
+
 def main():
     font_title = load_font(20)
     font_data  = load_font(16)
@@ -127,6 +161,9 @@ def main():
         if uptime_secs > 0:
             spm = acc / (uptime_secs / 60.0)
 
+        # Balance
+        bal = get_unpaid_vipor('RP5uqbvzmCg7FtFS6WcKPHuAq7HihEkHmY')
+
         # Header
         center_text(draw, 2, "VERUS MINER // PI5", font_title, FG_MAIN)
         center_text(draw, 20, "POOL: sg.vipor.net", font_small, FG_DIM)
@@ -143,33 +180,41 @@ def main():
             sh = f"{acc:4d}/{tot:<4d}".strip()
             up = uptime.strip()
             spm_val = f"{spm:5.2f}".strip()
+            bal = get_unpaid_vipor_cached('RP5uqbvzmCg7FtFS6WcKPHuAq7HihEkHmY')
+            if bal is not None:
+                bal_val = f"{bal:.6f}".rstrip("0").rstrip(".")
+            else:
+                bal_val = "--"
 
             draw.text((10, 40), f"HR : {hr} MH/s", font=font_data, fill=FG_MAIN)
             draw.text((10, 56), f"SH : {sh} / REJ: {rej}", font=font_data, fill=FG_MAIN)
             draw.text((10, 72), f"UP : {up}", font=font_data, fill=FG_MAIN)
             draw.text((10, 88), f"SPM: {spm_val} shares/min", font=font_data, fill=FG_MAIN)
-
+            draw.text((10, 104), f"BAL: {bal_val} VRSC (unpaid)", font=font_data, fill=FG_MAIN)
 
             # Divider
-            draw.line((10, 106, WIDTH - 10, 106), fill=FG_DIM, width=1)
+            draw.line((10, 122, WIDTH - 10, 122), fill=FG_DIM, width=1)
 
             # Log
-            draw.text((10, 110), "LOG:", font=font_small, fill=FG_GRAY)
+            draw.text((10, 126), "LOG:", font=font_small, fill=FG_GRAY)
 
-            y = 126
+            y = 142
             max_chars = 60
-            for ln in lines:
-                # Clean ANSI + timestamp
+            for ln in reversed(lines):
                 ln2 = strip_ansi(ln)
                 ln_clean = strip_timestamp(ln2)
+
                 if len(ln_clean) > max_chars:
                     ln_disp = ln_clean[:max_chars] + "…"
                 else:
                     ln_disp = ln_clean
+
                 draw.text((10, y), "> " + ln_disp, font=font_log, fill=FG_MAIN)
                 y += 16
-                if y > HEIGHT - 8:
+
+                if y > HEIGHT - 24:
                     break
+
 
         # Write to framebuffer
         rgb565 = rgb888_to_rgb565(img)
