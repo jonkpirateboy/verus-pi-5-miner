@@ -193,12 +193,12 @@ def main():
             draw.text((10, 104), f"BAL: {bal_val} VRSC (unpaid)", font=font_data, fill=FG_MAIN)
 
             # Divider
-            draw.line((10, 122, WIDTH - 10, 122), fill=FG_DIM, width=1)
+            draw.line((10, 124, WIDTH - 10, 124), fill=FG_DIM, width=1)
 
             # Log
-            draw.text((10, 126), "LOG:", font=font_small, fill=FG_GRAY)
+            draw.text((10, 128), "LOG:", font=font_small, fill=FG_GRAY)
 
-            y = 142
+            y = 144
             max_chars = 60
             for ln in reversed(lines):
                 ln2 = strip_ansi(ln)
