@@ -7,13 +7,17 @@ from pathlib import Path
 from PIL import Image, ImageDraw, ImageFont
 import re, requests
 
+COIN_ADDRESS = 'RP5uqbvzmCg7FtFS6WcKPHuAq7HihEkHmY'
+
 WIDTH = 480
 HEIGHT = 320
 FB_PATH = "/dev/fb0"
 LOG_PATH = Path("/tmp/verus_raw.log")
 BALANCE_CACHE_SECONDS = 300  # 5 minutes
-_last_balance_check = 0.0
-_cached_balance = None
+_last_unpaid_check = 0.0
+_cached_unpaid = None
+_last_paid_check = 0.0
+_cached_paid = None
 
 BG_COLOR = (0, 0, 0)
 FG_MAIN = (0, 255, 0)
@@ -123,12 +127,42 @@ def get_unpaid_vipor_cached(address):
     """
     Return cached unpaid balance, refresh at most every BALANCE_CACHE_SECONDS.
     """
-    global _last_balance_check, _cached_balance
+    global _last_unpaid_check, _cached_unpaid
     now = time.time()
-    if now - _last_balance_check > BALANCE_CACHE_SECONDS or _cached_balance is None:
-        _cached_balance = get_unpaid_vipor(address)
-        _last_balance_check = now
-    return _cached_balance
+    if now - _last_unpaid_check > BALANCE_CACHE_SECONDS or _cached_unpaid is None:
+        _cached_unpaid = get_unpaid_vipor(address)
+        _last_unpaid_check = now
+    return _cached_unpaid
+
+def get_paid_vipor(address):
+    """
+    Get paid VRSC (totalPaid) from Vipor JSON API.
+    https://restapi.vipor.net/api/pools/verus/miners/<ADDRESS>
+    """
+    url = f"https://restapi.vipor.net/api/pools/verus/miners/{address}"
+    try:
+        r = requests.get(url, timeout=5)
+        r.raise_for_status()
+        data = r.json()
+        # pendingBalance is your unpaid VRSC at the pool
+        paid = data.get("totalPaid", None)
+        if paid is None:
+            return None
+        return float(paid)
+    except Exception:
+        return None
+
+
+def get_paid_vipor_cached(address):
+    """
+    Return cached paid balance, refresh at most every BALANCE_CACHE_SECONDS.
+    """
+    global _last_paid_check, _cached_paid
+    now = time.time()
+    if now - _last_paid_check > BALANCE_CACHE_SECONDS or _cached_paid is None:
+        _cached_paid = get_paid_vipor(address)
+        _last_paid_check = now
+    return _cached_paid
 
 def main():
     font_title = load_font(20)
@@ -162,7 +196,8 @@ def main():
             spm = acc / (uptime_secs / 60.0)
 
         # Balance
-        bal = get_unpaid_vipor('RP5uqbvzmCg7FtFS6WcKPHuAq7HihEkHmY')
+        unpaid = get_unpaid_vipor(COIN_ADDRESS)
+        paid = get_paid_vipor(COIN_ADDRESS)
 
         # Header
         center_text(draw, 2, "VERUS MINER // PI5", font_title, FG_MAIN)
@@ -180,17 +215,22 @@ def main():
             sh = f"{acc:4d}/{tot:<4d}".strip()
             up = uptime.strip()
             spm_val = f"{spm:5.2f}".strip()
-            bal = get_unpaid_vipor_cached('RP5uqbvzmCg7FtFS6WcKPHuAq7HihEkHmY')
-            if bal is not None:
-                bal_val = f"{bal:.6f}".rstrip("0").rstrip(".")
+            unpaid = get_unpaid_vipor_cached(COIN_ADDRESS)
+            if unpaid is not None:
+                unpaid_val = f"{unpaid:.6f}".rstrip("0").rstrip(".")
             else:
-                bal_val = "--"
+                unpaid_val = "--"
+            paid = get_paid_vipor_cached(COIN_ADDRESS)
+            if paid is not None:
+                paid_val = f"{paid:.6f}".rstrip("0").rstrip(".")
+            else:
+                paid_val = "--"
 
-            draw.text((10, 40), f"HR : {hr} MH/s", font=font_data, fill=FG_MAIN)
-            draw.text((10, 56), f"SH : {sh} / REJ: {rej}", font=font_data, fill=FG_MAIN)
-            draw.text((10, 72), f"UP : {up}", font=font_data, fill=FG_MAIN)
-            draw.text((10, 88), f"SPM: {spm_val} shares/min", font=font_data, fill=FG_MAIN)
-            draw.text((10, 104), f"BAL: {bal_val} VRSC (unpaid)", font=font_data, fill=FG_MAIN)
+            draw.text((10, 40), f"HR  : {hr} MH/s", font=font_data, fill=FG_MAIN)
+            draw.text((10, 56), f"SH  : {sh} / REJ: {rej}", font=font_data, fill=FG_MAIN)
+            draw.text((10, 72), f"UP  : {up}", font=font_data, fill=FG_MAIN)
+            draw.text((10, 88), f"SPM : {spm_val} shares/min", font=font_data, fill=FG_MAIN)
+            draw.text((10, 104), f"VRSC: {unpaid_val} (unpaid), {paid_val} (paid)", font=font_data, fill=FG_MAIN)
 
             # Divider
             draw.line((10, 124, WIDTH - 10, 124), fill=FG_DIM, width=1)
